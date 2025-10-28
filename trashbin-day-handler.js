@@ -13,6 +13,9 @@ if (!token) {
 
 const bot = new TelegramBot(token, {polling: true});
 
+// store last active chat id as fallback for scheduled messages
+let lastActiveChatId = null;
+
 // Matches "/echo [whatever]"
 bot.onText(/\/echo (.+)/, (msg, match) => {
   // 'msg' is the received Message from Telegram
@@ -30,6 +33,7 @@ bot.onText(/\/echo (.+)/, (msg, match) => {
 // messages.
 bot.on('message', (msg) => {
   const chatId = msg.chat.id;
+  lastActiveChatId = chatId;
 
   // compute today's and tomorrow's date strings in local YYYY-MM-DD using local date parts
   const pad = (n) => n.toString().padStart(2, '0');
@@ -73,3 +77,82 @@ bot.on('message', (msg) => {
   console.log(`Sent to ${chatId}: ${outMsg}`);
 
 });
+
+// --- scheduling logic: send daily at 20:30 local time ---
+const parseTargetChats = () => {
+  const env = process.env.TARGET_CHAT_ID || '';
+  if (!env) return [];
+  return env.split(',').map(s => s.trim()).filter(Boolean);
+};
+
+const composeMessageForDate = (schedule, dateObj) => {
+  const pad = (n) => n.toString().padStart(2, '0');
+  const yyyy = dateObj.getFullYear();
+  const mm = pad(dateObj.getMonth() + 1);
+  const dd = pad(dateObj.getDate());
+  const dateStr = `${yyyy}-${mm}-${dd}`;
+  const item = schedule.find((d) => d.date === dateStr);
+  const type = item ? item.type : 'UNKNOWN';
+  return { dateStr, type };
+};
+
+const sendDailyMessage = () => {
+  const fs = require('fs');
+  const path = require('path');
+  let schedule = [];
+  try {
+    const raw = fs.readFileSync(path.join(__dirname, 'db', 'november-25.json'), 'utf8');
+    schedule = JSON.parse(raw);
+  } catch (e) {
+    console.error('Could not load schedule JSON for scheduled send:', e.message);
+    return;
+  }
+
+  const now = new Date();
+  const today = composeMessageForDate(schedule, now);
+  const tomorrowDate = new Date(now);
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const tomorrow = composeMessageForDate(schedule, tomorrowDate);
+
+  const outMsg = `Today is ${today.dateStr} (${today.type}). Tomorrow you must put outside ${tomorrow.type}`;
+
+  const targets = parseTargetChats();
+  if (targets.length === 0) {
+    if (lastActiveChatId) {
+      bot.sendMessage(lastActiveChatId, outMsg).catch((err) => console.error('Scheduled send error:', err.message));
+      console.log(`Scheduled message sent to last active chat ${lastActiveChatId}: ${outMsg}`);
+    } else {
+      console.warn('No TARGET_CHAT_ID configured and no last active chat available. Skipping scheduled send.');
+    }
+    return;
+  }
+
+  targets.forEach(t => {
+    bot.sendMessage(t, outMsg).catch((err) => console.error('Scheduled send error to', t, err.message));
+    console.log(`Scheduled message sent to ${t}: ${outMsg}`);
+  });
+};
+
+const scheduleNextRun = () => {
+  const now = new Date();
+  const next = new Date(now);
+  next.setHours(20, 30, 0, 0); // 20:30:00.000 local
+  if (next <= now) {
+    // if already past today 20:30, schedule for tomorrow
+    next.setDate(next.getDate() + 1);
+  }
+  const msUntilNext = next - now;
+  console.log('Scheduling next daily send at', next.toString());
+  setTimeout(() => {
+    try {
+      sendDailyMessage();
+    } catch (e) {
+      console.error('Error during scheduled send:', e.message);
+    }
+    // after running, schedule subsequent runs every 24h using scheduleNextRun
+    scheduleNextRun();
+  }, msUntilNext);
+};
+
+// start scheduler
+scheduleNextRun();
