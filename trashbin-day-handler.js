@@ -156,3 +156,34 @@ const scheduleNextRun = () => {
 
 // start scheduler
 scheduleNextRun();
+
+// send startup notification to configured TARGET_CHAT_ID(s)
+const sendStartupNotification = () => {
+  const targets = parseTargetChats();
+  if (targets.length === 0) {
+    console.log('No TARGET_CHAT_ID configured; skipping startup notification.');
+    return;
+  }
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const raw = fs.readFileSync(path.join(__dirname, 'db', 'november-25.json'), 'utf8');
+    const schedule = JSON.parse(raw);
+    const now = new Date();
+    const today = composeMessageForDate(schedule, now);
+    const tomorrowDate = new Date(now);
+    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrow = composeMessageForDate(schedule, tomorrowDate);
+    const welcome = 'Bot is up';
+    // const outMsg = `(startup) Today is ${today.dateStr} (${today.type}). Tomorrow you must put outside ${tomorrow.type}`;
+    targets.forEach(t => {
+      bot.sendMessage(t, welcome).catch((err) => console.error('Startup welcome send error to', t, err.message));
+      // bot.sendMessage(t, outMsg).catch((err) => console.error('Startup send error to', t, err.message));
+      console.log(`Startup notification sent to ${t}: ${welcome}`); // ;  ${outMsg}
+    });
+  } catch (e) {
+    console.error('Error sending startup notification:', e.message);
+  }
+};
+
+sendStartupNotification();
