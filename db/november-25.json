@@ -1,5 +1,17 @@
 [
     {
+        "date": "2025-10-29",
+        "type": "ORGANICO"
+    },
+    {
+        "date": "2025-10-30",
+        "type": "SECCO RESIDUO"
+    },
+    {
+        "date": "2025-10-31",
+        "type": "CARTA E CARTONE"
+    },
+    {
         "date": "2025-11-01",
         "type": "NO SERVICE"
     },
