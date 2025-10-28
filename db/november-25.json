@@ -1,0 +1,122 @@
+[
+    {
+        "date": "2025-11-01",
+        "type": "NO SERVICE"
+    },
+    {
+        "date": "2025-11-02",
+        "type": "NO SERVICE"
+    },
+    {
+        "date": "2025-11-03",
+        "type": "ORGANICO"
+    },
+    {
+        "date": "2025-11-04",
+        "type": "PLASTICA E METALLI"
+    },
+    {
+        "date": "2025-11-05",
+        "type": "ORGANICO"
+    },
+    {
+        "date": "2025-11-06",
+        "type": "VETRO"
+    },
+    {
+        "date": "2025-11-07",
+        "type": "CARTA E CARTONE"
+    },
+    {
+        "date": "2025-11-08",
+        "type": "ORGANICO"
+    },
+        {
+        "date": "2025-11-09",
+        "type": "NO SERVICE"
+    },
+    {
+        "date": "2025-11-10",
+        "type": "ORGANICO"
+    },
+    {
+        "date": "2025-11-11",
+        "type": "PLASTICA E METALLI"
+    },
+    {
+        "date": "2025-11-12",
+        "type": "ORGANICO"
+    },
+    {
+        "date": "2025-11-13",
+        "type": "SECCO RESIDUO"
+    },
+    {
+        "date": "2025-11-14",
+        "type": "CARTA E CARTONE"
+    },
+    {
+        "date": "2025-11-15",
+        "type": "ORGANICO"
+    },
+        {
+        "date": "2025-11-16",
+        "type": "NO SERVICE"
+    },
+    {
+        "date": "2025-11-17",
+        "type": "ORGANICO"
+    },
+    {
+        "date": "2025-11-18",
+        "type": "PLASTICA E METALLI"
+    },
+    {
+        "date": "2025-11-19",
+        "type": "ORGANICO"
+    },
+    {
+        "date": "2025-11-20",
+        "type": "VETRO"
+    },
+    {
+        "date": "2025-11-21",
+        "type": "CARTA E CARTONE"
+    },
+    {
+        "date": "2025-11-22",
+        "type": "ORGANICO"
+    },
+        {
+        "date": "2025-11-23",
+        "type": "NO SERVICE"
+    },
+    {
+        "date": "2025-11-24",
+        "type": "ORGANICO"
+    },
+    {
+        "date": "2025-11-25",
+        "type": "PLASTICA E METALLI"
+    },
+    {
+        "date": "2025-11-26",
+        "type": "ORGANICO"
+    },
+    {
+        "date": "2025-11-27",
+        "type": "SECCO RESIDUO"
+    },
+    {
+        "date": "2025-11-28",
+        "type": "CARTA E CARTONE"
+    },
+    {
+        "date": "2025-11-29",
+        "type": "ORGANICO"
+    },
+        {
+        "date": "2025-11-30",
+        "type": "NO SERVICE"
+    }
+]
