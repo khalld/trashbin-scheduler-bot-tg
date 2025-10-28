@@ -1,9 +1,16 @@
 const TelegramBot = require('node-telegram-bot-api');
+// Load environment variables from .env if present
+require('dotenv').config();
 
-// replace the value below with the Telegram token you receive from @BotFather
-const token = '8442580531:AAHzgUxXCxWNif9K_mA3dT8kxgyR9LCeXXE';
+// read the Telegram token from environment variable BOT_TOKEN
+const token = process.env.BOT_TOKEN;
 
 // Create a bot that uses 'polling' to fetch new updates
+if (!token) {
+  console.error('Error: BOT_TOKEN is not set. Please add it to .env or set the environment variable BOT_TOKEN');
+  process.exit(1);
+}
+
 const bot = new TelegramBot(token, {polling: true});
 
 // Matches "/echo [whatever]"
