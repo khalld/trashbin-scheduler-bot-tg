@@ -1,17 +1,15 @@
 // import shared constants and utils
 const { EMOJI_MAP } = require('./lib/constants');
-const { parseTargetChats, composeMessageForDate, ensureLogsDir, logRequest } = require('./lib/utils');
+const { parseTargetChats, composeMessageForDate, ensureLogsDir, logRequest, getSubscribers, subscribeChat, unsubscribeChat } = require('./lib/utils');
 
 const TelegramBot = require('node-telegram-bot-api');
-// Load environment variables from .env if present
-require('dotenv').config();
 
 // read the Telegram token from environment variable BOT_TOKEN
 const token = process.env.BOT_TOKEN;
 
 // Create a bot that uses 'polling' to fetch new updates
 if (!token) {
-  console.error('Error: BOT_TOKEN is not set. Please add it to .env or set the environment variable BOT_TOKEN');
+  console.error('Error: BOT_TOKEN is not set. Please set the BOT_TOKEN environment variable (e.g. via pm2 ecosystem.config.js)');
   process.exit(1);
 }
 
@@ -62,7 +60,6 @@ bot.onText(/\/unsubscribe/, (msg) => {
   const chatId = msg.chat && msg.chat.id;
   if (!chatId) return;
   try {
-    const { unsubscribeChat } = require('./lib/utils');
     unsubscribeChat(String(chatId), __dirname);
     bot.sendMessage(chatId, 'You have been unsubscribed.');
   } catch (e) {
@@ -80,9 +77,8 @@ bot.on('message', (msg) => {
   logRequest(msg, null, __dirname);
   const chatId = msg.chat.id;
   lastActiveChatId = chatId;
-  // add to subscribers list
+  // add to subscribers list (saved into ecosystem.config.js TARGET_CHAT_ID)
   try {
-    const { subscribeChat } = require('./lib/utils');
     subscribeChat(String(chatId), __dirname);
   } catch (e) {
     console.error('Failed to subscribe chat:', e.message);
@@ -148,7 +144,6 @@ const sendDailyMessage = () => {
   let targets = parseTargetChats();
   if (process.env.SEND_TO_SUBSCRIBERS === 'true') {
     try {
-      const { getSubscribers } = require('./lib/utils');
       const subs = getSubscribers(__dirname);
       targets = subs.map(String);
     } catch (e) {

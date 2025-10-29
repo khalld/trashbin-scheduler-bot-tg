@@ -1,6 +1,5 @@
 const TelegramBot = require('node-telegram-bot-api');
-// Load environment variables from .env if present
-require('dotenv').config();
+// Environment variables are provided by the runtime (e.g. pm2 ecosystem.config.js)
 
 // read the Telegram token from environment variable BOT_TOKEN
 const token = process.env.BOT_TOKEN;

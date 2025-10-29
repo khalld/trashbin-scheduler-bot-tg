@@ -21,7 +21,7 @@ module.exports = {
         // Comma-separated list of chat ids to send startup/scheduled messages to
         TARGET_CHAT_ID: '',
         // Comma-separated list of admin chat ids allowed to run admin commands
-        ADMIN_CHAT_ID: '',
+        ADMIN_CHAT_ID: '7328814364',
         // When 'true', scheduled messages will be sent to all stored subscribers (db/chats.json)
         SEND_TO_SUBSCRIBERS: 'false',
         // When 'true', append request logs to logs/requests.log in project root
