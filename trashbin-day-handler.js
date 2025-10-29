@@ -34,7 +34,7 @@ bot.onText(/\/echo (.+)/, (msg, match) => {
   bot.sendMessage(chatId, resp);
 });
 
-// Admin command: /subscribers -> list subscriber chat IDs (restricted)
+// Admin command: /subscribers -> list subscriber chat IDs (restricted) TODO: to understand why it return unauth..
 bot.onText(/\/subscribers/, async (msg) => {
   const fromId = msg.from && (msg.from.id || msg.from.username);
   const adminEnv = process.env.ADMIN_CHAT_ID || '';
@@ -54,6 +54,20 @@ bot.onText(/\/subscribers/, async (msg) => {
   } catch (e) {
     console.error('Failed to list subscribers:', e.message);
     bot.sendMessage(msg.chat.id, 'Error reading subscribers');
+  }
+});
+
+// Command for users to unsubscribe themselves TODO: to test with marta account
+bot.onText(/\/unsubscribe/, (msg) => {
+  const chatId = msg.chat && msg.chat.id;
+  if (!chatId) return;
+  try {
+    const { unsubscribeChat } = require('./lib/utils');
+    unsubscribeChat(String(chatId), __dirname);
+    bot.sendMessage(chatId, 'You have been unsubscribed.');
+  } catch (e) {
+    console.error('Failed to unsubscribe:', e.message);
+    bot.sendMessage(chatId, 'Unable to unsubscribe right now.');
   }
 });
 
