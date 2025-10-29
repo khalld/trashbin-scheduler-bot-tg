@@ -18,3 +18,8 @@ il comando stampa una riga da eseguire con sudo: eseguila esattamente come mostr
 poi salva la lista dei processi
 
 pm2 save
+
+
+il comando nuovo x partire con la config isuta e 
+
+khd@plutopi3:~/trashbin-scheduler-bot-tg $ pm2 start ecosystem.config.js
