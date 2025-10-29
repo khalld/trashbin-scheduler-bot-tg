@@ -1,3 +1,7 @@
+// import shared constants and utils
+const { EMOJI_MAP } = require('./lib/constants');
+const { parseTargetChats, composeMessageForDate, ensureLogsDir, logRequest } = require('./lib/utils');
+
 const TelegramBot = require('node-telegram-bot-api');
 // Load environment variables from .env if present
 require('dotenv').config();
@@ -16,16 +20,6 @@ const bot = new TelegramBot(token, {polling: true});
 // store last active chat id as fallback for scheduled messages
 let lastActiveChatId = null;
 
-// emoji mapping for categories
-const EMOJI_MAP = {
-  'ORGANICO': '🥦',
-  'PLASTICA E METALLI': '♻️',
-  'VETRO': '🍾',
-  'CARTA E CARTONE': '📦',
-  'SECCO RESIDUO': '🗑️',
-  'NO SERVICE': '⛔️',
-  'UNKNOWN': '❓'
-};
 
 // Matches "/echo [whatever]"
 bot.onText(/\/echo (.+)/, (msg, match) => {
@@ -42,28 +36,11 @@ bot.onText(/\/echo (.+)/, (msg, match) => {
 
 // Listen for any kind of message. There are different kinds of
 // messages.
-// helper: log incoming requestor (console + file)
-const fs = require('fs');
-const path = require('path');
-const logsDir = path.join(__dirname, 'logs');
-if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
-const requestsLogPath = path.join(logsDir, 'requests.log');
-
-const logRequest = (msg) => {
-  try {
-    const chatId = msg.chat && (msg.chat.id || msg.chat.username || 'unknown');
-    const user = (msg.from && (msg.from.username || `${msg.from.first_name || ''} ${msg.from.last_name || ''}`.trim())) || 'unknown';
-    const ts = new Date().toISOString();
-    const line = `${ts} | chatId=${chatId} | user=${user}\n`;
-    console.log('Request:', line.trim());
-    fs.appendFileSync(requestsLogPath, line);
-  } catch (e) {
-    console.error('Failed to log request:', e.message);
-  }
-};
+// ensure logs file exists and use shared logRequest helper
+const requestsLogPath = ensureLogsDir(__dirname);
 
 bot.on('message', (msg) => {
-  logRequest(msg);
+  logRequest(msg, requestsLogPath);
   const chatId = msg.chat.id;
   lastActiveChatId = chatId;
 
@@ -106,29 +83,13 @@ bot.on('message', (msg) => {
 
   const emojiToday = EMOJI_MAP[todayType] || EMOJI_MAP.UNKNOWN;
   const emojiTomorrow = EMOJI_MAP[tomorrowType] || EMOJI_MAP.UNKNOWN;
-  const outMsg = `Today is ${todayStr} ${emojiToday} (${todayType}). Tomorrow you must put outside ${emojiTomorrow} ${tomorrowType}`;
+  const outMsg = `Today is ${todayStr} ${emojiToday} (${todayType}). This night, after 20:00, you must put outside ${emojiTomorrow} ${tomorrowType}`;
   bot.sendMessage(chatId, outMsg).catch((err) => console.error('Send error:', err.message));
   console.log(`Sent to ${chatId}: ${outMsg}`);
 
 });
 
 // --- scheduling logic: send daily at 20:30 local time ---
-const parseTargetChats = () => {
-  const env = process.env.TARGET_CHAT_ID || '';
-  if (!env) return [];
-  return env.split(',').map(s => s.trim()).filter(Boolean);
-};
-
-const composeMessageForDate = (schedule, dateObj) => {
-  const pad = (n) => n.toString().padStart(2, '0');
-  const yyyy = dateObj.getFullYear();
-  const mm = pad(dateObj.getMonth() + 1);
-  const dd = pad(dateObj.getDate());
-  const dateStr = `${yyyy}-${mm}-${dd}`;
-  const item = schedule.find((d) => d.date === dateStr);
-  const type = item ? item.type : 'UNKNOWN';
-  return { dateStr, type };
-};
 
 const sendDailyMessage = () => {
   const fs = require('fs');
@@ -150,9 +111,10 @@ const sendDailyMessage = () => {
 
   const emojiToday = EMOJI_MAP[today.type] || EMOJI_MAP.UNKNOWN;
   const emojiTomorrow = EMOJI_MAP[tomorrow.type] || EMOJI_MAP.UNKNOWN;
-  const outMsg = `Today is ${today.dateStr} ${emojiToday} (${today.type}). Tomorrow you must put outside ${emojiTomorrow} ${tomorrow.type}`;
+  const outMsg = `Today is ${today.dateStr} ${emojiToday} (${today.type}). Tonight, after 20:00 pm you must put outside ${emojiTomorrow} ${tomorrow.type}`;
 
   const targets = parseTargetChats();
+  
   if (targets.length === 0) {
     if (lastActiveChatId) {
       bot.sendMessage(lastActiveChatId, outMsg).catch((err) => console.error('Scheduled send error:', err.message));

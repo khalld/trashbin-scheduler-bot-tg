@@ -23,7 +23,7 @@ eggs/
 # Runtime data
 pids/
 .eggs/
-lib/
+# lib/
 lib64/
 
 # Build / distribution
