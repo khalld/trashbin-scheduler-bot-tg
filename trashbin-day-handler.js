@@ -76,60 +76,48 @@ bot.onText(/\/unsubscribe/, (msg) => {
 // NOTE: logs are written to stdout so pm2 can capture them. To also persist logs to file,
 // set WRITE_REQUESTS_LOG=true in .env and the logger will append to logs/requests.log.
 bot.on('message', (msg) => {
-  logRequest(msg);
+  // Always log the request and auto-subscribe, but don't auto-send the detailed 'today...' message here.
+  logRequest(msg, null, __dirname);
   const chatId = msg.chat.id;
   lastActiveChatId = chatId;
   // add to subscribers list
   try {
     const { subscribeChat } = require('./lib/utils');
-    subscribeChat(chatId, __dirname);
+    subscribeChat(String(chatId), __dirname);
   } catch (e) {
     console.error('Failed to subscribe chat:', e.message);
   }
+  // any other simple auto-replies can be added here, but the main info message is now sent only on /info
 
-  // compute today's and tomorrow's date strings in local YYYY-MM-DD using local date parts
-  const pad = (n) => n.toString().padStart(2, '0');
-  const now = new Date();
-  const yyyy = now.getFullYear();
-  const mm = pad(now.getMonth() + 1);
-  const dd = pad(now.getDate());
-  const todayStr = `${yyyy}-${mm}-${dd}`;
 
-  const tomorrowDate = new Date(now);
-  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-  const tyyyy = tomorrowDate.getFullYear();
-  const tmm = pad(tomorrowDate.getMonth() + 1);
-  const tdd = pad(tomorrowDate.getDate());
-  const tomorrowStr = `${tyyyy}-${tmm}-${tdd}`;
-
-  // load schedule from db/november-25.json using fs to avoid require cache issues
+// New command: /info -> reply with today's and tomorrow's schedule (same message used by scheduler)
+bot.onText(/\/info/, (msg) => {
+  const chatId = msg.chat && msg.chat.id;
+  if (!chatId) return;
+  // load schedule
   const fs = require('fs');
+  const path = require('path');
   let schedule = [];
   try {
-    const raw = fs.readFileSync(require('path').join(__dirname, 'db', 'november-25.json'), 'utf8');
+    const raw = fs.readFileSync(path.join(__dirname, 'db', 'november-25.json'), 'utf8');
     schedule = JSON.parse(raw);
   } catch (e) {
-    console.error('Could not load schedule JSON:', e.message);
+    console.error('Could not load schedule JSON for /info:', e.message);
+    return bot.sendMessage(chatId, 'Impossibile caricare il calendario al momento.');
   }
 
-  const findType = (dateStr) => {
-    const item = schedule.find((d) => d.date === dateStr);
-    return item ? item.type : 'UNKNOWN';
-  };
+  const now = new Date();
+  const today = composeMessageForDate(schedule, now);
+  const tomorrowDate = new Date(now);
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const tomorrow = composeMessageForDate(schedule, tomorrowDate);
 
-  const todayType = findType(todayStr);
-  const tomorrowType = findType(tomorrowStr);
-
-  // diagnostic logs
-  console.log('Today:', todayStr, '->', todayType);
-  console.log('Tomorrow:', tomorrowStr, '->', tomorrowType);
-
-  const emojiToday = EMOJI_MAP[todayType] || EMOJI_MAP.UNKNOWN;
-  const emojiTomorrow = EMOJI_MAP[tomorrowType] || EMOJI_MAP.UNKNOWN;
-  const outMsg = `Today is ${todayStr} ${emojiToday} (${todayType}). This night, after 20:00, you must put outside ${emojiTomorrow} ${tomorrowType}`;
-  bot.sendMessage(chatId, outMsg).catch((err) => console.error('Send error:', err.message));
-  console.log(`Sent to ${chatId}: ${outMsg}`);
-
+  const emojiToday = EMOJI_MAP[today.type] || EMOJI_MAP.UNKNOWN;
+  const emojiTomorrow = EMOJI_MAP[tomorrow.type] || EMOJI_MAP.UNKNOWN;
+  const outMsg = `Today is ${today.dateStr} ${emojiToday} (${today.type}). Tonight, after 20:00 you must put outside ${emojiTomorrow} ${tomorrow.type}`;
+  bot.sendMessage(chatId, outMsg).catch((err) => console.error('Send /info error:', err.message));
+  console.log(`Sent /info to ${chatId}: ${outMsg}`);
+});
 });
 
 // --- scheduling logic: send daily at 20:30 local time ---
