@@ -16,6 +16,17 @@ const bot = new TelegramBot(token, {polling: true});
 // store last active chat id as fallback for scheduled messages
 let lastActiveChatId = null;
 
+// emoji mapping for categories
+const EMOJI_MAP = {
+  'ORGANICO': '🥦',
+  'PLASTICA E METALLI': '♻️',
+  'VETRO': '🍾',
+  'CARTA E CARTONE': '📦',
+  'SECCO RESIDUO': '🗑️',
+  'NO SERVICE': '⛔️',
+  'UNKNOWN': '❓'
+};
+
 // Matches "/echo [whatever]"
 bot.onText(/\/echo (.+)/, (msg, match) => {
   // 'msg' is the received Message from Telegram
@@ -31,7 +42,28 @@ bot.onText(/\/echo (.+)/, (msg, match) => {
 
 // Listen for any kind of message. There are different kinds of
 // messages.
+// helper: log incoming requestor (console + file)
+const fs = require('fs');
+const path = require('path');
+const logsDir = path.join(__dirname, 'logs');
+if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+const requestsLogPath = path.join(logsDir, 'requests.log');
+
+const logRequest = (msg) => {
+  try {
+    const chatId = msg.chat && (msg.chat.id || msg.chat.username || 'unknown');
+    const user = (msg.from && (msg.from.username || `${msg.from.first_name || ''} ${msg.from.last_name || ''}`.trim())) || 'unknown';
+    const ts = new Date().toISOString();
+    const line = `${ts} | chatId=${chatId} | user=${user}\n`;
+    console.log('Request:', line.trim());
+    fs.appendFileSync(requestsLogPath, line);
+  } catch (e) {
+    console.error('Failed to log request:', e.message);
+  }
+};
+
 bot.on('message', (msg) => {
+  logRequest(msg);
   const chatId = msg.chat.id;
   lastActiveChatId = chatId;
 
@@ -72,7 +104,9 @@ bot.on('message', (msg) => {
   console.log('Today:', todayStr, '->', todayType);
   console.log('Tomorrow:', tomorrowStr, '->', tomorrowType);
 
-  const outMsg = `Today is ${todayStr} (${todayType}). Tomorrow you must put outside ${tomorrowType}`;
+  const emojiToday = EMOJI_MAP[todayType] || EMOJI_MAP.UNKNOWN;
+  const emojiTomorrow = EMOJI_MAP[tomorrowType] || EMOJI_MAP.UNKNOWN;
+  const outMsg = `Today is ${todayStr} ${emojiToday} (${todayType}). Tomorrow you must put outside ${emojiTomorrow} ${tomorrowType}`;
   bot.sendMessage(chatId, outMsg).catch((err) => console.error('Send error:', err.message));
   console.log(`Sent to ${chatId}: ${outMsg}`);
 
@@ -114,7 +148,9 @@ const sendDailyMessage = () => {
   tomorrowDate.setDate(tomorrowDate.getDate() + 1);
   const tomorrow = composeMessageForDate(schedule, tomorrowDate);
 
-  const outMsg = `Today is ${today.dateStr} (${today.type}). Tomorrow you must put outside ${tomorrow.type}`;
+  const emojiToday = EMOJI_MAP[today.type] || EMOJI_MAP.UNKNOWN;
+  const emojiTomorrow = EMOJI_MAP[tomorrow.type] || EMOJI_MAP.UNKNOWN;
+  const outMsg = `Today is ${today.dateStr} ${emojiToday} (${today.type}). Tomorrow you must put outside ${emojiTomorrow} ${tomorrow.type}`;
 
   const targets = parseTargetChats();
   if (targets.length === 0) {
@@ -174,12 +210,15 @@ const sendStartupNotification = () => {
     const tomorrowDate = new Date(now);
     tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     const tomorrow = composeMessageForDate(schedule, tomorrowDate);
-    const welcome = 'Bot is up';
-    // const outMsg = `(startup) Today is ${today.dateStr} (${today.type}). Tomorrow you must put outside ${tomorrow.type}`;
+    const rocket = '🚀';
+    const welcome = `${rocket} Bot is up`;
+    const emojiToday = EMOJI_MAP[today.type] || EMOJI_MAP.UNKNOWN;
+    const emojiTomorrow = EMOJI_MAP[tomorrow.type] || EMOJI_MAP.UNKNOWN;
+    const outMsg = `(startup) Today is ${today.dateStr} ${emojiToday} (${today.type}). Tomorrow you must put outside ${emojiTomorrow} ${tomorrow.type}`;
     targets.forEach(t => {
       bot.sendMessage(t, welcome).catch((err) => console.error('Startup welcome send error to', t, err.message));
-      // bot.sendMessage(t, outMsg).catch((err) => console.error('Startup send error to', t, err.message));
-      console.log(`Startup notification sent to ${t}: ${welcome}`); // ;  ${outMsg}
+      bot.sendMessage(t, outMsg).catch((err) => console.error('Startup send error to', t, err.message));
+      console.log(`Startup notification sent to ${t}: ${welcome}; ${outMsg}`);
     });
   } catch (e) {
     console.error('Error sending startup notification:', e.message);
