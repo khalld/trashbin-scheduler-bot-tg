@@ -34,6 +34,29 @@ bot.onText(/\/echo (.+)/, (msg, match) => {
   bot.sendMessage(chatId, resp);
 });
 
+// Admin command: /subscribers -> list subscriber chat IDs (restricted)
+bot.onText(/\/subscribers/, async (msg) => {
+  const fromId = msg.from && (msg.from.id || msg.from.username);
+  const adminEnv = process.env.ADMIN_CHAT_ID || '';
+  const admins = adminEnv.split(',').map(s => s.trim()).filter(Boolean);
+  const isAdmin = admins.length === 0 ? false : admins.includes(String(fromId)) || admins.includes(String(msg.chat.id));
+  if (!isAdmin) {
+    return bot.sendMessage(msg.chat.id, 'Not authorized');
+  }
+  try {
+    const { getSubscribers } = require('./lib/utils');
+    const subs = getSubscribers(__dirname);
+    if (!subs || subs.length === 0) {
+      return bot.sendMessage(msg.chat.id, 'No subscribers yet');
+    }
+    const body = subs.join('\n');
+    bot.sendMessage(msg.chat.id, `Subscribers:\n${body}`);
+  } catch (e) {
+    console.error('Failed to list subscribers:', e.message);
+    bot.sendMessage(msg.chat.id, 'Error reading subscribers');
+  }
+});
+
 // Listen for any kind of message. There are different kinds of
 // messages.
 // ensure logs file exists and use shared logRequest helper
@@ -43,6 +66,13 @@ bot.on('message', (msg) => {
   logRequest(msg, requestsLogPath);
   const chatId = msg.chat.id;
   lastActiveChatId = chatId;
+  // add to subscribers list
+  try {
+    const { subscribeChat } = require('./lib/utils');
+    subscribeChat(chatId, __dirname);
+  } catch (e) {
+    console.error('Failed to subscribe chat:', e.message);
+  }
 
   // compute today's and tomorrow's date strings in local YYYY-MM-DD using local date parts
   const pad = (n) => n.toString().padStart(2, '0');
@@ -113,8 +143,18 @@ const sendDailyMessage = () => {
   const emojiTomorrow = EMOJI_MAP[tomorrow.type] || EMOJI_MAP.UNKNOWN;
   const outMsg = `Today is ${today.dateStr} ${emojiToday} (${today.type}). Tonight, after 20:00 pm you must put outside ${emojiTomorrow} ${tomorrow.type}`;
 
-  const targets = parseTargetChats();
-  
+  // decide targets: env TARGET_CHAT_ID has precedence; if SEND_TO_SUBSCRIBERS=true, use saved subscribers instead
+  let targets = parseTargetChats();
+  if (process.env.SEND_TO_SUBSCRIBERS === 'true') {
+    try {
+      const { getSubscribers } = require('./lib/utils');
+      const subs = getSubscribers(__dirname);
+      targets = subs.map(String);
+    } catch (e) {
+      console.error('Failed to load subscribers:', e.message);
+    }
+  }
+
   if (targets.length === 0) {
     if (lastActiveChatId) {
       bot.sendMessage(lastActiveChatId, outMsg).catch((err) => console.error('Scheduled send error:', err.message));
