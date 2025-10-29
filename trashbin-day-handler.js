@@ -59,11 +59,10 @@ bot.onText(/\/subscribers/, async (msg) => {
 
 // Listen for any kind of message. There are different kinds of
 // messages.
-// ensure logs file exists and use shared logRequest helper
-const requestsLogPath = ensureLogsDir(__dirname);
-
+// NOTE: logs are written to stdout so pm2 can capture them. To also persist logs to file,
+// set WRITE_REQUESTS_LOG=true in .env and the logger will append to logs/requests.log.
 bot.on('message', (msg) => {
-  logRequest(msg, requestsLogPath);
+  logRequest(msg);
   const chatId = msg.chat.id;
   lastActiveChatId = chatId;
   // add to subscribers list
