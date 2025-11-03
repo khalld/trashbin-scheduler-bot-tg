@@ -1,25 +1,37 @@
 // import shared constants and utils
 const { EMOJI_MAP } = require('./lib/constants');
 const { parseTargetChats, composeMessageForDate, ensureLogsDir, logRequest, getSubscribers, subscribeChat, unsubscribeChat } = require('./lib/utils');
-
 const TelegramBot = require('node-telegram-bot-api');
-
 // read the Telegram token from environment variable BOT_TOKEN
 const token = process.env.BOT_TOKEN;
-
 // Create a bot that uses 'polling' to fetch new updates
 if (!token) {
   console.error('Error: BOT_TOKEN is not set. Please set the BOT_TOKEN environment variable (e.g. via pm2 ecosystem.config.js)');
   process.exit(1);
 }
-
 const bot = new TelegramBot(token, {polling: true});
-
 // store last active chat id as fallback for scheduled messages
 let lastActiveChatId = null;
 
+// Listen for any kind of message. There are different kinds of messages.
+// NOTE: logs are written to stdout so pm2 can capture them. To also persist logs to file,
+// set WRITE_REQUESTS_LOG=true in .env and the logger will append to logs/requests.log.
+bot.on('message', (msg) => {
+  // Always log the request and auto-subscribe, but don't auto-send the detailed 'today...' message here.
+  logRequest(msg, null, __dirname);
+  const chatId = msg.chat.id;
+  lastActiveChatId = chatId;
+  // add to subscribers list (saved into ecosystem.config.js TARGET_CHAT_ID)
+  try {
+    subscribeChat(String(chatId), __dirname);
+  } catch (e) {
+    console.error('Failed to subscribe chat:', e.message);
+  }
+  // any other simple auto-replies can be added here, but the main info message is now sent only on /info
+});
 
-// Matches "/echo [whatever]"
+
+// Matches "/echo [whatever]". Logs message, info about the user and echoes back the same message.
 bot.onText(/\/echo (.+)/, (msg, match) => {
   // 'msg' is the received Message from Telegram
   // 'match' is the result of executing the regexp above on the text content
@@ -32,7 +44,7 @@ bot.onText(/\/echo (.+)/, (msg, match) => {
   bot.sendMessage(chatId, resp);
 });
 
-// Admin command: /subscribers -> list subscriber chat IDs (restricted) TODO: to understand why it return unauth..
+// Admin command: /subscribers -> list subscriber chat IDs (restricted for admin) TODO: test with account having different id than admin.
 bot.onText(/\/subscribers/, async (msg) => {
   const fromId = msg.from && (msg.from.id || msg.from.username);
   const adminEnv = process.env.ADMIN_CHAT_ID || '';
@@ -55,7 +67,7 @@ bot.onText(/\/subscribers/, async (msg) => {
   }
 });
 
-// Command for users to unsubscribe themselves TODO: to test with marta account
+// Command for users to unsubscribe themselves TODO: is not working yet.
 bot.onText(/\/unsubscribe/, (msg) => {
   const chatId = msg.chat && msg.chat.id;
   if (!chatId) return;
@@ -67,24 +79,6 @@ bot.onText(/\/unsubscribe/, (msg) => {
     bot.sendMessage(chatId, 'Unable to unsubscribe right now.');
   }
 });
-
-// Listen for any kind of message. There are different kinds of
-// messages.
-// NOTE: logs are written to stdout so pm2 can capture them. To also persist logs to file,
-// set WRITE_REQUESTS_LOG=true in .env and the logger will append to logs/requests.log.
-bot.on('message', (msg) => {
-  // Always log the request and auto-subscribe, but don't auto-send the detailed 'today...' message here.
-  logRequest(msg, null, __dirname);
-  const chatId = msg.chat.id;
-  lastActiveChatId = chatId;
-  // add to subscribers list (saved into ecosystem.config.js TARGET_CHAT_ID)
-  try {
-    subscribeChat(String(chatId), __dirname);
-  } catch (e) {
-    console.error('Failed to subscribe chat:', e.message);
-  }
-  // any other simple auto-replies can be added here, but the main info message is now sent only on /info
-
 
 // New command: /info -> reply with today's and tomorrow's schedule (same message used by scheduler)
 bot.onText(/\/info/, (msg) => {
@@ -113,7 +107,6 @@ bot.onText(/\/info/, (msg) => {
   const outMsg = `Today is ${today.dateStr} ${emojiToday} (${today.type}). Tonight, after 20:00 you must put outside ${emojiTomorrow} ${tomorrow.type}`;
   bot.sendMessage(chatId, outMsg).catch((err) => console.error('Send /info error:', err.message));
   console.log(`Sent /info to ${chatId}: ${outMsg}`);
-});
 });
 
 // --- scheduling logic: send daily at 20:30 local time ---
@@ -188,9 +181,6 @@ const scheduleNextRun = () => {
   }, msUntilNext);
 };
 
-// start scheduler
-scheduleNextRun();
-
 // send startup notification to configured TARGET_CHAT_ID(s)
 const sendStartupNotification = () => {
   const targets = parseTargetChats();
@@ -223,4 +213,6 @@ const sendStartupNotification = () => {
   }
 };
 
+// start scheduler
+scheduleNextRun();
 sendStartupNotification();

@@ -9,16 +9,16 @@ module.exports = {
     {
       "name": "trashbin-scheduler-bot",
       "script": "./trashbin-day-handler.js",
-      "cwd": "/Users/danilo/GitHub/trashbin-scheduler-bot-tg",
+      "cwd": "/Users/danilo/GitHub/trashbin-scheduler-bot-tg", //       "cwd": "/home/khd/trashbin-scheduler-bot-tg",
       "instances": 1,
-      "autorestart": true,
+      "autorestart": false,
       "watch": false,
-      "max_restarts": 10,
+      "max_restarts": 1,
       "env": {
         "NODE_ENV": "production",
-        "BOT_TOKEN": "8442580531:AAHzgUxXCxWNif9K_mA3dT8kxgyR9LCeXXE",
-        "TARGET_CHAT_ID": "7328814364",
-        "ADMIN_CHAT_ID": "7328814364",
+        "BOT_TOKEN": "8442580531:AAHzgUxXCxWNif9K_mA3dT8kxgyR9LCeXXE", // FIXME: parametrizza con secret e farlo poi ad-hoc su server
+        "TARGET_CHAT_ID": "7328814364", // FIXME: parametrizza con secret e farlo poi ad-hoc su server
+        "ADMIN_CHAT_ID": "7328814364", // FIXME: parametrizza con secret e farlo poi ad-hoc su server
         "SEND_TO_SUBSCRIBERS": "false",
         "WRITE_REQUESTS_LOG": "false"
       }
