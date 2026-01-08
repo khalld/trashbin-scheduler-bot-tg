@@ -89,7 +89,7 @@ bot.onText(/\/info/, (msg) => {
   const path = require('path');
   let schedule = [];
   try {
-    const raw = fs.readFileSync(path.join(__dirname, 'db', 'dicember-25.json'), 'utf8');
+    const raw = fs.readFileSync(path.join(__dirname, 'db', 'gen-2026.json'), 'utf8');
     schedule = JSON.parse(raw);
   } catch (e) {
     console.error('Could not load schedule JSON for /info:', e.message);
@@ -116,7 +116,7 @@ const sendDailyMessage = () => {
   const path = require('path');
   let schedule = [];
   try {
-    const raw = fs.readFileSync(path.join(__dirname, 'db', 'dicember-25.json'), 'utf8');
+    const raw = fs.readFileSync(path.join(__dirname, 'db', 'gen-2026.json'), 'utf8');
     schedule = JSON.parse(raw);
   } catch (e) {
     console.error('Could not load schedule JSON for scheduled send:', e.message);
@@ -191,7 +191,7 @@ const sendStartupNotification = () => {
   try {
     const fs = require('fs');
     const path = require('path');
-    const raw = fs.readFileSync(path.join(__dirname, 'db', 'dicember-25.json'), 'utf8');
+    const raw = fs.readFileSync(path.join(__dirname, 'db', 'gen-2026.json'), 'utf8');
     const schedule = JSON.parse(raw);
     const now = new Date();
     const today = composeMessageForDate(schedule, now);
