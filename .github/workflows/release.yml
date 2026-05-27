@@ -2,13 +2,16 @@ name: Release
 
 # On a version tag (vX.Y.Z) push:
 #   1. build the single-file bundle and attach it to a GitHub Release
-#   2. publish the package to the npm registry
+#   2. publish the package to the public npm registry (unscoped name)
+#   3. publish the package to GitHub Packages (scoped @owner name) so it shows
+#      in the repository's "Packages" section
 # The tag's annotation message becomes the release notes, so create annotated
 # tags: `git tag -a vX.Y.Z -m "..."`.
 #
 # Requires repo secret NPM_TOKEN (an npm "Automation" access token) for the
-# publish step. Without it, the GitHub Release is still created and only the
-# npm publish is skipped.
+# npm.js publish. Without it, the GitHub Release and GitHub Packages publish
+# still run and only the npm.js publish is skipped. GitHub Packages uses the
+# built-in GITHUB_TOKEN, so no extra secret is needed.
 on:
   push:
     tags:
@@ -16,6 +19,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   release:
@@ -56,3 +60,14 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish
+
+      # Re-publish under the @owner scope to GitHub Packages so the package is
+      # listed on the repository. Uses the built-in GITHUB_TOKEN.
+      - name: Publish to GitHub Packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          npm pkg set name="@${OWNER,,}/trashbin-scheduler-bot-tg"
+          printf '@%s:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=%s\n' "${OWNER,,}" "$NODE_AUTH_TOKEN" > .npmrc
+          npm publish
