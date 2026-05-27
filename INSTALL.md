@@ -6,6 +6,9 @@ dependencies (no native compilation), so it installs quickly even on the Pi's
 512 MB of RAM.
 
 > The same steps work on any Debian/Raspberry Pi OS machine.
+>
+> **Don't want git on the Pi?** Jump to
+> [§10 — deploy as a single-file bundle](#10-alternative-deploy-as-a-single-file-bundle-no-git-on-the-pi).
 
 ---
 
@@ -171,6 +174,56 @@ needed. The bot picks the correct file automatically based on the date.
 ```
 
 Then restart: `pm2 restart trashbin-bot`.
+
+---
+
+## 10. Alternative: deploy as a single-file bundle (no git on the Pi)
+
+If you don't want to clone the repo or run `npm install` on the Pi, compile the
+whole app (code + dependencies) into one JavaScript file on your dev machine and
+copy just that file across. The Pi still needs **Node** and **PM2** (steps 2 and
+7), but no source checkout and no `node_modules`.
+
+### On your dev machine
+
+```bash
+npm install        # includes the @vercel/ncc build tool
+npm run build      # produces dist/index.js (self-contained)
+```
+
+Copy the bundle plus the schedule data and your config to the Pi. The `db/`
+folder must sit next to `index.js`, and `.env` must be in the same folder:
+
+```bash
+scp dist/index.js   pi@raspberrypi:~/trashbin-bot/index.js
+scp -r db           pi@raspberrypi:~/trashbin-bot/db
+scp .env            pi@raspberrypi:~/trashbin-bot/.env   # or create it on the Pi
+```
+
+### On the Pi
+
+```bash
+cd ~/trashbin-bot                       # run from here so .env + db/ resolve
+pm2 start index.js --name trashbin-bot
+pm2 save
+```
+
+> The bundle reads `db/` relative to its own location and `.env` from the
+> current directory, so always start it from the folder that contains
+> `index.js`, `db/`, and `.env`. `subscribers.json` is created there too.
+
+### Updating later
+
+Rebuild on your dev machine and copy only the new file:
+
+```bash
+npm run build
+scp dist/index.js pi@raspberrypi:~/trashbin-bot/index.js
+ssh pi@raspberrypi 'pm2 restart trashbin-bot'
+```
+
+To add a new month, just drop a `db/YYYY-MM.json` onto the Pi — no rebuild
+needed, since schedules are read at runtime, not bundled.
 
 ---
 

@@ -1,0 +1,39 @@
+name: Release
+
+# Build the single-file bundle and publish it as a GitHub Release whenever a
+# version tag (vX.Y.Z) is pushed. The tag's annotation message becomes the
+# release notes, so create annotated tags: `git tag -a vX.Y.Z -m "..."`.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build single-file bundle
+        run: npm run build
+
+      - name: Package bundle for release
+        run: cp dist/index.js trashbin-bot.js
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" trashbin-bot.js \
+            --title "$GITHUB_REF_NAME" \
+            --notes-from-tag
