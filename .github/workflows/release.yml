@@ -1,8 +1,14 @@
 name: Release
 
-# Build the single-file bundle and publish it as a GitHub Release whenever a
-# version tag (vX.Y.Z) is pushed. The tag's annotation message becomes the
-# release notes, so create annotated tags: `git tag -a vX.Y.Z -m "..."`.
+# On a version tag (vX.Y.Z) push:
+#   1. build the single-file bundle and attach it to a GitHub Release
+#   2. publish the package to the npm registry
+# The tag's annotation message becomes the release notes, so create annotated
+# tags: `git tag -a vX.Y.Z -m "..."`.
+#
+# Requires repo secret NPM_TOKEN (an npm "Automation" access token) for the
+# publish step. Without it, the GitHub Release is still created and only the
+# npm publish is skipped.
 on:
   push:
     tags:
@@ -14,6 +20,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,6 +31,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
         run: npm install
@@ -40,3 +49,9 @@ jobs:
           gh release create "$GITHUB_REF_NAME" trashbin-bot.js \
             --title "$GITHUB_REF_NAME" \
             --notes-from-tag
+
+      - name: Publish to npm
+        if: ${{ env.NPM_TOKEN != '' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish

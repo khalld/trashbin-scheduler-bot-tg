@@ -1,10 +1,41 @@
 {
   "name": "trashbin-scheduler-bot-tg",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Telegram bot that sends daily waste-collection reminders from a municipal pickup calendar.",
   "main": "trashbin-day-handler.js",
+  "bin": {
+    "trashbin-scheduler-bot": "trashbin-day-handler.js"
+  },
+  "license": "MPL-2.0",
+  "author": "khalld",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/khalld/trashbin-scheduler-bot-tg.git"
+  },
+  "bugs": {
+    "url": "https://github.com/khalld/trashbin-scheduler-bot-tg/issues"
+  },
+  "homepage": "https://github.com/khalld/trashbin-scheduler-bot-tg#readme",
+  "keywords": [
+    "telegram",
+    "telegram-bot",
+    "waste-collection",
+    "recycling",
+    "scheduler",
+    "raspberry-pi"
+  ],
   "engines": {
     "node": ">=20"
+  },
+  "files": [
+    "trashbin-day-handler.js",
+    "lib/",
+    "db/",
+    "ecosystem.config.js",
+    ".env.example"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "start": "node trashbin-day-handler.js",

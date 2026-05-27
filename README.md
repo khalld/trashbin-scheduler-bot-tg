@@ -93,10 +93,14 @@ committed. `ecosystem.config.js` contains **no secrets**.
 | Command            | Who      | Description                                              |
 | ------------------ | -------- | -------------------------------------------------------- |
 | `/info`            | anyone   | Replies with today's and tomorrow's collection.          |
+| `/week`            | anyone   | Schedule for the next 7 days.                            |
+| `/month`           | anyone   | Full calendar for the current month.                     |
+| `/help` (`/start`) | anyone   | Lists the available commands.                            |
 | `/echo <text>`     | anyone   | Echoes the text back (debug helper).                     |
 | `/subscribers`     | admin    | Lists subscriber chat IDs (requires `ADMIN_CHAT_ID`).    |
 | `/unsubscribe`     | anyone   | Removes the chat from the subscriber list.               |
 
+Commands are also registered in Telegram's command menu (via `setMyCommands`).
 Sending any message also auto-subscribes the chat and logs the request.
 
 ## Schedule data format
@@ -149,3 +153,5 @@ pm2 save       # persist the current process list
 ## License
 
 See [LICENSE](LICENSE).
+
+Reminder still standing: revoke the old BOT_TOKEN in @BotFather if you haven't — it was in the pre-squash history that existed on GitHub.

@@ -1,8 +1,9 @@
+#!/usr/bin/env node
 // load environment variables from .env (BOT_TOKEN, TARGET_CHAT_ID, ...)
 require('dotenv').config();
 // import shared constants and utils
 const { EMOJI_MAP } = require('./lib/constants');
-const { parseTargetChats, getEntryForDate, ensureLogsDir, logRequest, getSubscribers, subscribeChat, unsubscribeChat } = require('./lib/utils');
+const { parseTargetChats, getEntryForDate, loadScheduleForDate, ensureLogsDir, logRequest, getSubscribers, subscribeChat, unsubscribeChat } = require('./lib/utils');
 const TelegramBot = require('node-telegram-bot-api');
 // read the Telegram token from environment variable BOT_TOKEN
 const token = process.env.BOT_TOKEN;
@@ -100,6 +101,66 @@ bot.onText(/\/info/, (msg) => {
   console.log(`Sent /info to ${chatId}: ${outMsg}`);
 });
 
+// /week -> reply with the collection type for each of the next 7 days
+bot.onText(/\/week/, (msg) => {
+  const chatId = msg.chat && msg.chat.id;
+  if (!chatId) return;
+
+  const now = new Date();
+  const lines = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() + i);
+    const entry = getEntryForDate(d, __dirname);
+    const emoji = EMOJI_MAP[entry.type] || EMOJI_MAP.UNKNOWN;
+    lines.push(`${entry.dateStr} ${emoji} ${entry.type}`);
+  }
+  const outMsg = `📆 Next 7 days\n\n${lines.join('\n')}`;
+  bot.sendMessage(chatId, outMsg).catch((err) => console.error('Send /week error:', err.message));
+  console.log(`Sent /week to ${chatId}`);
+});
+
+// /month -> reply with the full schedule for the current month
+bot.onText(/\/month/, (msg) => {
+  const chatId = msg.chat && msg.chat.id;
+  if (!chatId) return;
+
+  const now = new Date();
+  const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const schedule = loadScheduleForDate(now, __dirname);
+  if (!schedule.length) {
+    return bot.sendMessage(chatId, `No schedule available for ${monthStr}.`);
+  }
+  const lines = schedule
+    .slice()
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((e) => {
+      const emoji = EMOJI_MAP[e.type] || EMOJI_MAP.UNKNOWN;
+      return `${e.date.slice(8, 10)} ${emoji} ${e.type}`;
+    });
+  const outMsg = `🗓️ Calendar for ${monthStr}\n\n${lines.join('\n')}`;
+  bot.sendMessage(chatId, outMsg).catch((err) => console.error('Send /month error:', err.message));
+  console.log(`Sent /month to ${chatId} (${lines.length} days)`);
+});
+
+// /help (and /start) -> list available commands
+bot.onText(/\/(help|start)/, (msg) => {
+  const chatId = msg.chat && msg.chat.id;
+  if (!chatId) return;
+
+  const outMsg = [
+    '🤖 Trashbin Scheduler Bot — available commands:',
+    '',
+    '/info — today\'s collection + what to put out tonight',
+    '/week — schedule for the next 7 days',
+    '/month — full calendar for the current month',
+    '/unsubscribe — stop receiving the daily message',
+    '/echo <text> — echo the text back (debug)'
+  ].join('\n');
+  bot.sendMessage(chatId, outMsg).catch((err) => console.error('Send /help error:', err.message));
+  console.log(`Sent /help to ${chatId}`);
+});
+
 // --- scheduling logic: send daily at 20:30 local time ---
 
 const sendDailyMessage = () => {
@@ -188,6 +249,15 @@ const sendStartupNotification = () => {
     console.error('Error sending startup notification:', e.message);
   }
 };
+
+// register the command list so it shows in Telegram's UI menu
+bot.setMyCommands([
+  { command: 'info', description: "Today's collection + what to put out tonight" },
+  { command: 'week', description: 'Schedule for the next 7 days' },
+  { command: 'month', description: 'Full calendar for the current month' },
+  { command: 'help', description: 'List available commands' },
+  { command: 'unsubscribe', description: 'Stop receiving the daily message' }
+]).catch((err) => console.error('setMyCommands error:', err.message));
 
 // start scheduler
 scheduleNextRun();
