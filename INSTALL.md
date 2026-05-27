@@ -7,8 +7,9 @@ dependencies (no native compilation), so it installs quickly even on the Pi's
 
 > The same steps work on any Debian/Raspberry Pi OS machine.
 >
-> **Don't want git on the Pi?** Jump to
-> [§10 — deploy as a single-file bundle](#10-alternative-deploy-as-a-single-file-bundle-no-git-on-the-pi).
+> **Don't want git on the Pi?** Deploy a
+> [single-file bundle (§10)](#10-alternative-deploy-as-a-single-file-bundle-no-git-on-the-pi)
+> or [install from npm (§11)](#11-alternative-install-from-the-npm-registry).
 
 ---
 
@@ -224,6 +225,54 @@ ssh pi@raspberrypi 'pm2 restart trashbin-bot'
 
 To add a new month, just drop a `db/YYYY-MM.json` onto the Pi — no rebuild
 needed, since schedules are read at runtime, not bundled.
+
+---
+
+## 11. Alternative: install from the npm registry
+
+The bot is published on npm as
+[`trashbin-scheduler-bot-tg`](https://www.npmjs.com/package/trashbin-scheduler-bot-tg),
+so you can install it with a single command — no repo, no clone, no build. The
+Pi still needs **Node** and **PM2** (steps 2 and 7).
+
+> 💡 Install Node via **nvm** (see the tip in step 2) so global packages install
+> into a user-writable location. Then you don't need `sudo`, and the bot can
+> persist `subscribers.json`.
+
+### Install
+
+```bash
+npm install -g trashbin-scheduler-bot-tg
+```
+
+This adds a `trashbin-scheduler-bot` command.
+
+### Configure and run
+
+`.env` is read from the working directory you launch the bot in, so keep your
+config in a dedicated folder:
+
+```bash
+mkdir -p ~/trashbin-bot && cd ~/trashbin-bot
+nano .env                       # add BOT_TOKEN etc. (see step 5)
+
+# start under PM2, pointing its working dir at your config folder
+pm2 start "$(which trashbin-scheduler-bot)" --name trashbin-bot --cwd ~/trashbin-bot
+pm2 save
+```
+
+### Updating
+
+```bash
+npm update -g trashbin-scheduler-bot-tg
+pm2 restart trashbin-bot
+```
+
+> **Schedules with this method ship inside the package.** Unlike the clone and
+> bundle methods, the collection calendars (`db/YYYY-MM.json`) come from the
+> installed version, so a new month arrives when you publish a new release and
+> run `npm update -g`. If you prefer to edit schedules directly on the Pi, use
+> the clone (steps 4–8) or bundle (§10) method instead.
 
 ---
 

@@ -53,7 +53,8 @@ glass, paper, dry waste, etc.).
 - [PM2](https://pm2.keymetrics.io/) for process management (recommended)
 
 > 📦 **Deploying on a Raspberry Pi?** Follow the step-by-step
-> [INSTALL.md](INSTALL.md) guide.
+> [INSTALL.md](INSTALL.md) guide. It also covers a single-file bundle and
+> installing from npm (`npm i -g trashbin-scheduler-bot-tg`).
 
 ## Setup
 
