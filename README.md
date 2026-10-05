@@ -127,6 +127,38 @@ Each file in `db/` is a JSON array of daily entries:
 | `NO SERVICE`         | ⛔️    |
 | `UNKNOWN`            | ❓    |
 
+## Release and deployment rules
+
+### Cut a new version
+
+Use the repository release workflow to produce a tagged release:
+
+```bash
+# 1. Update the month schedule or any user-facing code changes
+# 2. Bump the package version (patch/minor/major depending on the scope)
+npm version patch
+
+# 3. Confirm the bundled release artifact still builds
+npm run build
+
+# 4. Commit the release changes
+git add package.json package-lock.json db/*.json
+git commit -m "Release vX.Y.Z"
+
+# 5. Create an annotated tag and push it to GitHub
+git tag -a vX.Y.Z -m "Release vX.Y.Z"
+git push origin main --tags
+```
+
+The workflow in [.github/workflows/release.yml](.github/workflows/release.yml) is triggered by tags matching `v*` and will:
+
+1. build the single-file bundle,
+2. attach it to a GitHub Release,
+3. publish to npm, and
+4. publish a scoped package to GitHub Packages.
+
+If you are only changing schedule data, a patch release is normally enough. If the bot behavior or config format changes, choose `minor` or `major` according to semantic versioning.
+
 ## Running with PM2
 
 ```bash
