@@ -70,6 +70,20 @@ bot.onText(/\/subscribers/, async (msg) => {
   }
 });
 
+// Command for users to subscribe themselves to daily notices.
+bot.onText(/\/subscribe/, (msg) => {
+  const chatId = msg.chat && msg.chat.id;
+  if (!chatId) return;
+  try {
+    const wasSubscribed = getSubscribers(__dirname).includes(String(chatId));
+    subscribeChat(String(chatId), __dirname);
+    bot.sendMessage(chatId, wasSubscribed ? 'You are already subscribed to daily updates.' : 'You are subscribed to daily updates.');
+  } catch (e) {
+    console.error('Failed to subscribe:', e.message);
+    bot.sendMessage(chatId, 'Unable to subscribe right now.');
+  }
+});
+
 // Command for users to unsubscribe themselves TODO: is not working yet.
 bot.onText(/\/unsubscribe/, (msg) => {
   const chatId = msg.chat && msg.chat.id;
@@ -151,6 +165,7 @@ bot.onText(/\/(help|start)/, (msg) => {
   const outMsg = [
     '🤖 Trashbin Scheduler Bot — available commands:',
     '',
+    '/subscribe — receive daily updates',
     '/info — today\'s collection + what to put out tonight',
     '/week — schedule for the next 7 days',
     '/month — full calendar for the current month',
@@ -252,6 +267,7 @@ const sendStartupNotification = () => {
 
 // register the command list so it shows in Telegram's UI menu
 bot.setMyCommands([
+  { command: 'subscribe', description: 'Receive daily updates' },
   { command: 'info', description: "Today's collection + what to put out tonight" },
   { command: 'week', description: 'Schedule for the next 7 days' },
   { command: 'month', description: 'Full calendar for the current month' },
